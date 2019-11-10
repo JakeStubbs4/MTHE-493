@@ -50,9 +50,6 @@ def main():
     average_face = getAverageFace(face_images)
     face_deviations = getFaceDeviation(face_images, average_face)
     eigen_values, eigen_vectors = getEigenVectors(face_deviations)
-    print(eigen_values)
-    print(len(eigen_values))
-    print(eigen_vectors)
-    print(len(eigen_vectors))
+    
 
 main()
