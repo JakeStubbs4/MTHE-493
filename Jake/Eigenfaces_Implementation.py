@@ -121,15 +121,19 @@ def main():
     # Introduce new face and classify
     new_face_file = input("Enter the filename of an image to be classified: ")
     new_face = FaceImage(new_face_file, None)
-    new_face_projection = projectImage(new_face, ms_eigen_pairs, average_face, A)
+    new_face_projection = projectImage(new_face.image_vector, ms_eigen_pairs, average_face, A)
 
-    corresponding_face = KNearestNeighbors(face_images, new_face_projection, 1)
-    new_face.identity = corresponding_face.identity
+    corresponding_face = KNearestNeighbors(face_images, new_face_projection, 2)
 
-    f = io.imshow(getEigenFace(new_face, A))
-    f.show()
+    # TODO: Add some check here which will determine if the match is close enough.
+    #new_face.identity = corresponding_face[0].identity
 
-    g = io.imshow(getEigenFace(corresponding_face, A))
-    g.show()
+    plt.figure(1)
+    io.imshow(new_face.image_array)
+
+    plt.figure(2)
+    io.imshow(corresponding_face[0].image_array)
+
+    plt.show()
     
 main()
