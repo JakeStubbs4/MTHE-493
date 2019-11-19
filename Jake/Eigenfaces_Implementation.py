@@ -20,8 +20,12 @@ class FaceImage:
             self.image_array = np.array(transform.resize(io.imread(image, as_gray=True), (150,150)))
         else:
             self.image_array = image
+        if isinstance(identity, str):
+            print(identity.split('_')[0])
+            self.identity = int(identity.split('_')[0])
+        else:
+            self.identity = identity
         self.image_vector = self.image_array.flatten().reshape(-1,1)
-        self.identity = identity
         self.OMEGA_k = None
 
 class EigenPair:
@@ -36,11 +40,9 @@ class EigenPair:
 
 def importDataSet(foldername):
     face_images = []
-    identity = 0
     for filename in os.listdir(foldername):
         path = foldername + '/' + filename
-        face_images.append(FaceImage(path, identity))
-        identity = identity + 1
+        face_images.append(FaceImage(path, filename))
     return face_images
 
 def euclideanDistance(vector1, vector2):
@@ -79,9 +81,9 @@ def projectImage(face_image, eigen_pairs, average_face, A):
     return projection
 
 # KNN adapted from: https://machinelearningmastery.com/tutorial-to-implement-k-nearest-neighbors-in-python-from-scratch/
-def KNearestNeighbors(training_faces, test_row, num_neighbors):
+def KNearestNeighbors(training_classes, test_row, num_neighbors):
 	distances = list()
-	for face in training_faces:
+	for face in training_classes:
 		dist = euclideanDistance(test_row, face.OMEGA_k)
 		distances.append((face, dist))
 	distances.sort(key=lambda tup: tup[1])
