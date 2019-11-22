@@ -92,6 +92,23 @@ def KNearestNeighbors(training_classes, test_row, num_neighbors):
 		neighbors.append(distances[i][0])
 	return neighbors
 
+def classifyImage(corresponding_faces, new_face_projection):
+    identity_dictionary = dict()
+    for faceImage in corresponding_faces:
+        if identity_dictionary.get(faceImage.identity) == None:
+            identity_dictionary[faceImage.identity] = faceImage
+        else:
+            identity_dictionary[faceImage.identity].OMEGA_k = np.mean([identity_dictionary[faceImage.identity].OMEGA_k, faceImage.OMEGA_k], axis=0)
+    
+    # TODO: Fix this its terrible >>>
+    updated_results = []
+    for key in identity_dictionary:
+        dist = euclideanDistance(new_face_projection, identity_dictionary[key].OMEGA_k)
+        updated_results.append((identity_dictionary[key], dist))
+	
+    updated_results.sort(key=lambda tup: tup[1])
+    return updated_results[0][0]
+
 def main():
     face_images = importDataSet(os.getcwd() + '/faces_dataset')
     average_face = getAverageFace(face_images)
@@ -111,9 +128,9 @@ def main():
         ms_eigen_pairs.append(eigen_pairs[i])
 
     # Display most significant eigenfaces.
-    #for k in range(7):
-    #    io.imshow(getEigenFace(ms_eigen_pairs[k].eigen_vector, A))
-    #    plt.show()
+    for k in range(7):
+        io.imshow(getEigenFace(ms_eigen_pairs[k].eigen_vector, A))
+        plt.show()
 
     # Classify faces dataset.
     for face in face_images:
@@ -125,7 +142,11 @@ def main():
     new_face = FaceImage(new_face_file, None)
     new_face_projection = projectImage(new_face.image_vector, ms_eigen_pairs, average_face, A)
 
-    corresponding_face = KNearestNeighbors(face_images, new_face_projection, 2)
+    corresponding_faces = KNearestNeighbors(face_images, new_face_projection, 4)
+    for face in corresponding_faces:
+        print(face.identity)
+
+    corresponding_face = classifyImage(corresponding_faces, new_face_projection)
 
     # TODO: Add some check here which will determine if the match is close enough.
     #new_face.identity = corresponding_face[0].identity
@@ -134,7 +155,7 @@ def main():
     io.imshow(new_face.image_array)
 
     plt.figure(2)
-    io.imshow(corresponding_face[0].image_array)
+    io.imshow(corresponding_face.image_array)
 
     plt.show()
     
