@@ -21,8 +21,12 @@ class FaceImage:
         else:
             self.image_array = image
         if isinstance(identity, str):
-            print(identity.split('_')[0])
-            self.identity = int(identity.split('_')[0])
+            identity = identity.split('_')[0]
+            if identity == "unidentified":
+                self.identity = None
+            else:
+                self.identity = int(identity)
+            
         else:
             self.identity = identity
         self.image_vector = self.image_array.flatten().reshape(-1,1)
@@ -100,7 +104,7 @@ def classifyImage(corresponding_faces, new_face_projection):
         else:
             identity_dictionary[faceImage.identity].OMEGA_k = np.mean([identity_dictionary[faceImage.identity].OMEGA_k, faceImage.OMEGA_k], axis=0)
     
-    # TODO: Fix this its terrible >>>
+    # TODO: Fix this:
     updated_results = []
     for key in identity_dictionary:
         dist = euclideanDistance(new_face_projection, identity_dictionary[key].OMEGA_k)
@@ -110,10 +114,20 @@ def classifyImage(corresponding_faces, new_face_projection):
     return updated_results[0][0]
 
 def main():
-    face_images = importDataSet(os.getcwd() + '/faces_dataset')
+    '''IMPORT AND TRAIN ON DATA SET'''
+    # Import training data set.
+    face_images = importDataSet(os.getcwd() + "/faces_dataset")
+
+    # Compute the average of all of the imported face images.
     average_face = getAverageFace(face_images)
+
+    # Computer the deviation of each face image.
     face_deviations = getFaceDeviations(face_images, average_face)
+
+    # Calculate A matrix, impirical covariance matrix is given by C = A*AT
     A = np.concatenate(face_deviations, axis=1)
+
+    # Calculate eigen vectors and values from the impirical covariance matrix.
     eigen_values, eigen_vectors = covarianceEigenvectors(face_deviations, A)
  
     # Pair the eigenvectors and eigenvalues then order pairs by decreasing eigenvalue magnitude.
@@ -121,18 +135,18 @@ def main():
     for i in range(len(eigen_values)):
         eigen_pairs.append(EigenPair(eigen_values[i], eigen_vectors[i]))
     eigen_pairs.sort(key=lambda x: x.magnitude, reverse=True)
+    
+    '''TO INTRODUCE A SINGLE FACE AT A TIME:'''
 
-    # Choose some subset of the eigenvectors based on their significance (magnitude of eigenvalue corresponds to significance).
+    OPTIMAL_DIM = 7
+
+    OPTIMAL_K = 3
+    # Choose a subset of eigenpairs corresponding to DIM largest eigenvalues. 
     ms_eigen_pairs = []
-    for i in range(7):
-        ms_eigen_pairs.append(eigen_pairs[i])
+    for k in range(OPTIMAL_DIM):
+        ms_eigen_pairs.append(eigen_pairs[k])
 
-    # Display most significant eigenfaces.
-    for k in range(7):
-        io.imshow(getEigenFace(ms_eigen_pairs[k].eigen_vector, A))
-        plt.show()
-
-    # Classify faces dataset.
+    # Classify the given training dataset based on the chosen subspace.
     for face in face_images:
         face.OMEGA_k = projectImage(face.image_vector, ms_eigen_pairs, average_face, A)
         print(face.OMEGA_k)
@@ -140,15 +154,16 @@ def main():
     # Introduce new face and classify
     new_face_file = input("Enter the filename of an image to be classified: ")
     new_face = FaceImage(new_face_file, None)
+
     new_face_projection = projectImage(new_face.image_vector, ms_eigen_pairs, average_face, A)
 
-    corresponding_faces = KNearestNeighbors(face_images, new_face_projection, 4)
+    corresponding_faces = KNearestNeighbors(face_images, new_face_projection, OPTIMAL_K)
     for face in corresponding_faces:
         print(face.identity)
 
     corresponding_face = classifyImage(corresponding_faces, new_face_projection)
 
-    # TODO: Add some check here which will determine if the match is close enough.
+    # TODO: Add some check which will determine if the match is close enough.
     #new_face.identity = corresponding_face[0].identity
 
     plt.figure(1)
@@ -158,5 +173,73 @@ def main():
     io.imshow(corresponding_face.image_array)
 
     plt.show()
+
+    '''FOR OPTIMIZING K AND DIM USING CONSISTENT TRAINING DATA:'''
+    '''unidentified_faces = importDataSet(os.getcwd() + "/unidentified")
+
+    correct_identifications = dict()
+    for i in range(1,8):
+        correct_identifications[i] = 0
+    print(correct_identifications)
+    for i in range(1,8):
+        # Number of neighbors to consider in KNN classification.
+        K = i
+        # Number of dimensions to use to construct subspace.
+        DIM = 7
+
+        # Choose a subset of eigenpairs corresponding to DIM largest eigenvalues. 
+        ms_eigen_pairs = []
+        for k in range(DIM):
+            ms_eigen_pairs.append(eigen_pairs[k])
+
+        # Classify the given training dataset based on the chosen subspace.
+        for face in face_images:
+            face.OMEGA_k = projectImage(face.image_vector, ms_eigen_pairs, average_face, A)
+            print(face.OMEGA_k)
+
+        for new_face in unidentified_faces:
+            # Introduce new face and classify
+            new_face_projection = projectImage(new_face.image_vector, ms_eigen_pairs, average_face, A)
+
+            corresponding_faces = KNearestNeighbors(face_images, new_face_projection, K)
+            for face in corresponding_faces:
+                print(face.identity)
+
+            corresponding_face = classifyImage(corresponding_faces, new_face_projection)
+
+            # TODO: Add some check here which will determine if the match is close enough.
+            #new_face.identity = corresponding_face[0].identity
+
+            plt.figure(1)
+            io.imshow(new_face.image_array)
+
+            plt.figure(2)
+            io.imshow(corresponding_face.image_array)
+
+            #plt.show()
+            plt.draw()
+            plt.pause(1) # <-------
+            plt.close()
+
+            while True:
+                try:
+                    n = input("Enter a 1 if the previous identification was correct or a 0 if it was not:")
+                    n = int(n)
+                    break
+                except ValueError:
+                    print("Try again")
+            correct_identifications[i] += n
+            print(correct_identifications)
+
+    for key in correct_identifications:
+        correct_identifications[key] = correct_identifications[key]/len(unidentified_faces)
+    lists = sorted(correct_identifications.items()) # sorted by key, return a list of tuples
+
+    x, y = zip(*lists) # unpack a list of pairs into two tuples
+
+    plt.plot(x, y)
+    plt.xlabel("Dimension of Subspace")
+    plt.ylabel("Identification accuracy")
+    plt.show()'''
     
 main()
