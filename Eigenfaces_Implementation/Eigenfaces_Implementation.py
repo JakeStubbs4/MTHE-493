@@ -137,11 +137,12 @@ def main():
     eigen_pairs.sort(key=lambda x: x.magnitude, reverse=True)
     
     '''TO INTRODUCE A SINGLE FACE AT A TIME:'''
-
+    # Optimal dimension for accuracy of recognition.
     OPTIMAL_DIM = 7
-
+    # Optimal nearest neighbors to consider for accuracy of recognition.
     OPTIMAL_K = 3
     # Choose a subset of eigenpairs corresponding to DIM largest eigenvalues. 
+    
     ms_eigen_pairs = []
     for k in range(OPTIMAL_DIM):
         ms_eigen_pairs.append(eigen_pairs[k])
@@ -206,9 +207,6 @@ def main():
                 print(face.identity)
 
             corresponding_face = classifyImage(corresponding_faces, new_face_projection)
-
-            # TODO: Add some check here which will determine if the match is close enough.
-            #new_face.identity = corresponding_face[0].identity
 
             plt.figure(1)
             io.imshow(new_face.image_array)
