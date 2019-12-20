@@ -67,70 +67,9 @@ def classifyImage(corresponding_faces, new_face_projection):
     updated_results.sort(key=lambda tup: tup[1])
     return updated_results[0][0]
 
-def main():
-    '''IMPORT DATA SET AND TRAIN'''
-    # Import training data set.
-    face_images = importDataSet()
-
-    # Compute the average of all of the imported face images.
-    average_face = averageVector(face_images)
-
-    # Compute the deviation of all of the face images.
-    face_deviations = standardDeviation(face_images, average_face)
-
-    # Calculate A matrix, impirical covariance matrix is given by C = A*AT
-    A = np.concatenate(face_deviations, axis=1)
-
-    # Calculate eigen vectors and values from the impirical covariance matrix.
-    eigen_values, eigen_vectors = covarianceEigenvectors(face_deviations, A)
- 
-    # Pair the eigenvectors and eigenvalues then order pairs by decreasing eigenvalue magnitude.
-    eigen_pairs = []
-    for i in range(len(eigen_values)):
-        eigen_pairs.append(EigenPair(eigen_values[i], eigen_vectors[i]))
-    eigen_pairs.sort(key=lambda x: x.magnitude, reverse=True)
-    
-    '''TO INTRODUCE A SINGLE FACE AT A TIME:'''
-    # Optimal dimension for accuracy of recognition.
-    OPTIMAL_DIM = 7
-    # Optimal nearest neighbors to consider for accuracy of recognition.
-    OPTIMAL_K = 3
-    # Choose a subset of eigenpairs corresponding to DIM largest eigenvalues. 
-    
-    ms_eigen_pairs = []
-    for k in range(OPTIMAL_DIM):
-        ms_eigen_pairs.append(eigen_pairs[k])
-
-    # Classify the given training dataset based on the chosen subspace.
-    for face in face_images:
-        face.OMEGA_k = projectImage(face.image_vector, ms_eigen_pairs, average_face, A)
-        print(face.OMEGA_k)
-
-    # Introduce new face and classify
-    new_face_file = input("Enter the filename of an image to be classified: ")
-    new_face = FaceImage(new_face_file, None)
-
-    new_face_projection = projectImage(new_face.image_vector, ms_eigen_pairs, average_face, A)
-
-    corresponding_faces = KNearestNeighbors(face_images, new_face_projection, OPTIMAL_K)
-    for face in corresponding_faces:
-        print(face.identity)
-
-    corresponding_face = classifyImage(corresponding_faces, new_face_projection)
-
-    # TODO: Add some check which will determine if the match is close enough.
-    #new_face.identity = corresponding_face[0].identity
-
-    plt.figure(1)
-    new_face.displayImage()
-
-    plt.figure(2)
-    corresponding_face.displayImage()
-
-    plt.show()
-
-    '''FOR OPTIMIZING K AND DIM USING CONSISTENT TRAINING DATA:'''
-    '''unidentified_faces = importDataSet(os.getcwd() + "/unidentified")
+# To optimize Dimension of extracted linear subspace as well as K in KNN computation.
+'''def optimizeDimension():
+    unidentified_faces = importDataSet(os.getcwd() + "/unidentified")
 
     correct_identifications = dict()
     for i in range(1,8):
@@ -193,5 +132,67 @@ def main():
     plt.xlabel("Dimension of Subspace")
     plt.ylabel("Identification accuracy")
     plt.show()'''
+
+def main():
+    '''IMPORT DATA SET AND TRAIN'''
+    # Import training data set.
+    face_images = importDataSet()
+
+    # Compute the average of all of the imported face images.
+    average_face = averageVector(face_images)
+
+    # Compute the deviation of all of the face images.
+    face_deviations = standardDeviation(face_images, average_face)
+
+    # Calculate A matrix, impirical covariance matrix is given by C = A*AT
+    A = np.concatenate(face_deviations, axis=1)
+
+    # Calculate eigen vectors and values from the impirical covariance matrix.
+    eigen_values, eigen_vectors = covarianceEigenvectors(face_deviations, A)
+ 
+    # Pair the eigenvectors and eigenvalues then order pairs by decreasing eigenvalue magnitude.
+    eigen_pairs = []
+    for i in range(len(eigen_values)):
+        eigen_pairs.append(EigenPair(eigen_values[i], eigen_vectors[i]))
+    eigen_pairs.sort(key=lambda x: x.magnitude, reverse=True)
+    
+    '''TO INTRODUCE A SINGLE FACE AT A TIME:'''
+    # Optimal dimension for accuracy of recognition.
+    OPTIMAL_DIM = 7
+    # Optimal nearest neighbors to consider for accuracy of recognition.
+    OPTIMAL_K = 3
+    # Choose a subset of eigenpairs corresponding to DIM largest eigenvalues. 
+    
+    ms_eigen_pairs = []
+    for k in range(OPTIMAL_DIM):
+        ms_eigen_pairs.append(eigen_pairs[k])
+
+    # Classify the given training dataset based on the chosen subspace.
+    for face in face_images:
+        face.OMEGA_k = projectImage(face.image_vector, ms_eigen_pairs, average_face, A)
+        print(face.OMEGA_k)
+
+    # Introduce new face and classify
+    new_face_file = input("Enter the filename of an image to be classified: ")
+    new_face = FaceImage(new_face_file, None)
+
+    new_face_projection = projectImage(new_face.image_vector, ms_eigen_pairs, average_face, A)
+
+    corresponding_faces = KNearestNeighbors(face_images, new_face_projection, OPTIMAL_K)
+    for face in corresponding_faces:
+        print(face.identity)
+
+    corresponding_face = classifyImage(corresponding_faces, new_face_projection)
+
+    # TODO: Add some check which will determine if the match is close enough.
+    #new_face.identity = corresponding_face[0].identity
+
+    plt.figure(1)
+    new_face.displayImage()
+
+    plt.figure(2)
+    corresponding_face.displayImage()
+
+    plt.show()
     
 main()
