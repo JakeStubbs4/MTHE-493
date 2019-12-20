@@ -2,81 +2,36 @@
 # EigenFaces Implementation
 # Jake Stubbs
 
-from skimage import io
-from skimage import transform
 from matplotlib import pyplot as plt
 import numpy as np
-import math
 import os
+from Utilities import euclideanDistance, importDataSet, FaceImage, EigenPair
 
-class FaceImage:
-    image_array = None
-    image_vector = None
-    identity = None
-    OMEGA_k = None
-
-    def __init__(self, image, identity):
-        if isinstance(image, str):
-            self.image_array = np.array(transform.resize(io.imread(image, as_gray=True), (150,150)))
-        else:
-            self.image_array = image
-        if isinstance(identity, str):
-            identity = identity.split('_')[0]
-            if identity == "unidentified":
-                self.identity = None
-            else:
-                self.identity = int(identity)
-            
-        else:
-            self.identity = identity
-        self.image_vector = self.image_array.flatten().reshape(-1,1)
-        self.OMEGA_k = None
-
-class EigenPair:
-    eigen_value = None
-    magnitude = None
-    eigen_vector = None
-
-    def __init__(self, eigen_value, eigen_vector):
-        self.eigen_value = eigen_value
-        self.magnitude = abs(eigen_value)
-        self.eigen_vector = eigen_vector
-
-def importDataSet(foldername):
-    face_images = []
-    for filename in os.listdir(foldername):
-        path = foldername + '/' + filename
-        face_images.append(FaceImage(path, filename))
-    return face_images
-
-def euclideanDistance(vector1, vector2):
-    if len(vector1) != len(vector2):
-        return None
-    distance = 0.0
-    for i in range(len(vector1) - 1):
-        distance += (vector1[i] - vector2[i])**2
-    return math.sqrt(distance)
-
-def getAverageFace(face_images):
+# Computes the vector representation of the average face of all of the faces in the provided dataset.
+def averageVector(face_images):
     face_images_arrays = []
     for image in face_images:
         face_images_arrays.append(image.image_array)
     return np.mean(face_images_arrays, axis=0).reshape(-1,1)
 
-def getFaceDeviations(face_images, average_face):
+# Computes the standard deviation of each face image and returns an array of deviation vectors.
+def standardDeviation(face_images, average_face):
     face_deviations = []
     for face in face_images:
         face_deviations.append(face.image_vector - average_face)
     return face_deviations
 
+# Computes the eigenvectors of the provided empirical covariance matrix A.
 def covarianceEigenvectors(face_deviations, A):
     L = np.dot(np.transpose(A),A)
     return np.linalg.eig(L)
 
+# Converts eigen vector to face images to be displayed.
 def getEigenFace(eigen_vector, A):
     eigen_face = np.dot(A, eigen_vector).reshape(150,150)
     return eigen_face
 
+# Projects newly introduced face image onto predetermined low dimensional image space.
 def projectImage(face_image, eigen_pairs, average_face, A):
     projection = []
     for pair in eigen_pairs:
@@ -84,7 +39,7 @@ def projectImage(face_image, eigen_pairs, average_face, A):
         projection.append(omega_k)
     return projection
 
-# KNN adapted from: https://machinelearningmastery.com/tutorial-to-implement-k-nearest-neighbors-in-python-from-scratch/
+# K Nearest Neighbor to classify an individual image projection based on the shortest euclidean distance from the projected training images.
 def KNearestNeighbors(training_classes, test_row, num_neighbors):
 	distances = list()
 	for face in training_classes:
@@ -96,6 +51,7 @@ def KNearestNeighbors(training_classes, test_row, num_neighbors):
 		neighbors.append(distances[i][0])
 	return neighbors
 
+# Classify unidentified face image projection based on the projections of the identified K nearest neighbors.
 def classifyImage(corresponding_faces, new_face_projection):
     identity_dictionary = dict()
     for faceImage in corresponding_faces:
@@ -104,7 +60,6 @@ def classifyImage(corresponding_faces, new_face_projection):
         else:
             identity_dictionary[faceImage.identity].OMEGA_k = np.mean([identity_dictionary[faceImage.identity].OMEGA_k, faceImage.OMEGA_k], axis=0)
     
-    # TODO: Fix this:
     updated_results = []
     for key in identity_dictionary:
         dist = euclideanDistance(new_face_projection, identity_dictionary[key].OMEGA_k)
@@ -114,15 +69,15 @@ def classifyImage(corresponding_faces, new_face_projection):
     return updated_results[0][0]
 
 def main():
-    '''IMPORT AND TRAIN ON DATA SET'''
+    '''IMPORT DATA SET AND TRAIN'''
     # Import training data set.
-    face_images = importDataSet(os.getcwd() + "/faces_dataset")
+    face_images = importDataSet()
 
     # Compute the average of all of the imported face images.
-    average_face = getAverageFace(face_images)
+    average_face = averageVector(face_images)
 
-    # Computer the deviation of each face image.
-    face_deviations = getFaceDeviations(face_images, average_face)
+    # Compute the deviation of all of the face images.
+    face_deviations = standardDeviation(face_images, average_face)
 
     # Calculate A matrix, impirical covariance matrix is given by C = A*AT
     A = np.concatenate(face_deviations, axis=1)
@@ -168,10 +123,10 @@ def main():
     #new_face.identity = corresponding_face[0].identity
 
     plt.figure(1)
-    io.imshow(new_face.image_array)
+    new_face.displayImage()
 
     plt.figure(2)
-    io.imshow(corresponding_face.image_array)
+    corresponding_face.displayImage()
 
     plt.show()
 
@@ -200,7 +155,7 @@ def main():
 
         for new_face in unidentified_faces:
             # Introduce new face and classify
-            new_face_projection = projectImage(new_face.image_vector, ms_eigen_pairs, average_face, A)
+            new_face_projection = projectImage(new_faced.image_vector, ms_eigen_pairs, average_face, A)
 
             corresponding_faces = KNearestNeighbors(face_images, new_face_projection, K)
             for face in corresponding_faces:
