@@ -156,7 +156,7 @@ def main():
         eigen_pairs.append(EigenPair(eigen_values[i], eigen_vectors[i]))
     eigen_pairs.sort(key=lambda x: x.magnitude, reverse=True)
     
-    '''TO INTRODUCE A SINGLE FACE AT A TIME:'''
+    '''INTRODUCE A SINGLE FACE AT A TIME:'''
     # Optimal dimension for accuracy of recognition.
     OPTIMAL_DIM = 7
     # Optimal nearest neighbors to consider for accuracy of recognition.
