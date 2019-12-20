@@ -42,15 +42,13 @@ class EigenPair:
         self.magnitude = abs(eigen_value)
         self.eigen_vector = eigen_vector
 
-@staticmethod
-def importDataSet(foldername = os.getcwd() + "/../Face_Images/faces_dataset"):
+def importDataSet(foldername = os.getcwd() + "/Face_Images/faces_dataset"):
     face_images = []
     for filename in os.listdir(foldername):
         path = foldername + '/' + filename
         face_images.append(FaceImage(path, filename))
     return face_images
 
-@staticmethod
 def euclideanDistance(vector1, vector2):
     if len(vector1) != len(vector2):
         return None
