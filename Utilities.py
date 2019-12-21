@@ -49,10 +49,10 @@ def importDataSet(foldername = os.getcwd() + "/Face_Images/faces_dataset"):
         face_images.append(FaceImage(path, filename))
     return face_images
 
-def euclideanDistance(vector1, vector2):
-    if len(vector1) != len(vector2):
+def euclideanDistance(vector_1, vector_2):
+    if len(vector_1) != len(vector_2):
         return None
     distance = 0.0
-    for i in range(len(vector1) - 1):
-        distance += (vector1[i] - vector2[i])**2
+    for i in range(len(vector_1) - 1):
+        distance += (vector_1[i] - vector_2[i])**2
     return math.sqrt(distance)
