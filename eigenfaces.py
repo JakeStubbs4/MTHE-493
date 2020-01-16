@@ -4,7 +4,7 @@
 
 from matplotlib import pyplot as plt
 import numpy as np
-from Utilities import euclideanDistance, importDataSet, FaceImage, EigenPair
+from utilities import euclideanDistance, importDataSet, FaceImage, EigenPair
 
 # Computes the vector representation of the average face of all of the faces in the provided dataset.
 
