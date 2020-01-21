@@ -1,3 +1,7 @@
+import numpy as np
+from skimage import io
+from skimage import transform
+
 class FaceImage:
     image_array = None
     image_vector = None
