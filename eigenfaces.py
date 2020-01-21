@@ -4,7 +4,7 @@
 
 from matplotlib import pyplot as plt
 import numpy as np
-from utilities import euclideanDistance, importDataSet, FaceImage, EigenPair
+from utilities import euclideanDistance, importDataSet, FaceImage, EigenPair, KNearestNeighbors
 
 # Computes the vector representation of the average face of all of the faces in the provided dataset.
 
@@ -44,24 +44,9 @@ def getEigenFace(eigen_vector, A):
 def projectImage(face_image, eigen_pairs, average_face, A):
     projection = []
     for pair in eigen_pairs:
-        omega_k = float(np.dot(np.dot(A, pair.eigen_vector),
-                               face_image - average_face))
+        omega_k = float(np.dot(np.dot(A, pair.eigen_vector), face_image - average_face))
         projection.append(omega_k)
     return projection
-
-# K Nearest Neighbor to classify an individual image projection based on the shortest euclidean distance from the projected training images.
-
-
-def KNearestNeighbors(training_classes, test_row, num_neighbors):
-    distances = list()
-    for face in training_classes:
-        dist = euclideanDistance(test_row, face.OMEGA_k)
-        distances.append((face, dist))
-    distances.sort(key=lambda tup: tup[1])
-    neighbors = list()
-    for i in range(num_neighbors):
-        neighbors.append(distances[i][0])
-    return neighbors
 
 # Classify unidentified face image projection based on the projections of the identified K nearest neighbors.
 
@@ -72,13 +57,11 @@ def classifyImage(corresponding_faces, new_face_projection):
         if identity_dictionary.get(faceImage.identity) == None:
             identity_dictionary[faceImage.identity] = faceImage
         else:
-            identity_dictionary[faceImage.identity].OMEGA_k = np.mean(
-                [identity_dictionary[faceImage.identity].OMEGA_k, faceImage.OMEGA_k], axis=0)
+            identity_dictionary[faceImage.identity].OMEGA_k = np.mean([identity_dictionary[faceImage.identity].OMEGA_k, faceImage.OMEGA_k], axis=0)
 
     updated_results = []
     for key in identity_dictionary:
-        dist = euclideanDistance(
-            new_face_projection, identity_dictionary[key].OMEGA_k)
+        dist = euclideanDistance(new_face_projection, identity_dictionary[key].OMEGA_k)
         updated_results.append((identity_dictionary[key], dist))
 
     updated_results.sort(key=lambda tup: tup[1])
@@ -121,24 +104,20 @@ def main():
 
     # Classify the given training dataset based on the chosen subspace.
     for face in face_images:
-        face.OMEGA_k = projectImage(
-            face.image_vector, ms_eigen_pairs, average_face, A)
+        face.OMEGA_k = projectImage(face.image_vector, ms_eigen_pairs, average_face, A)
         print(face.OMEGA_k)
 
     # Introduce new face and classify
     new_face_file = input("Enter the filename of an image to be classified: ")
     new_face = FaceImage(new_face_file, None)
 
-    new_face_projection = projectImage(
-        new_face.image_vector, ms_eigen_pairs, average_face, A)
+    new_face_projection = projectImage(new_face.image_vector, ms_eigen_pairs, average_face, A)
 
-    corresponding_faces = KNearestNeighbors(
-        face_images, new_face_projection, OPTIMAL_K)
+    corresponding_faces = KNearestNeighbors(face_images, new_face_projection, OPTIMAL_K)
     for face in corresponding_faces:
         print(face.identity)
 
-    corresponding_face = classifyImage(
-        corresponding_faces, new_face_projection)
+    corresponding_face = classifyImage(corresponding_faces, new_face_projection)
 
     # TODO: Add some check which will determine if the match is close enough.
     #new_face.identity = corresponding_face[0].identity
