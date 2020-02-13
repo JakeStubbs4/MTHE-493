@@ -67,17 +67,26 @@ def classifyImage(corresponding_faces, new_face_projection):
     updated_results.sort(key=lambda tup: tup[1])
     return updated_results[0][0]
 
+def applyKernal(face_images, parameters):
+    # Apply some function from image space to feature space here using a linear combination of popular kernal functions.
+    return face_images
 
 def main():
     '''IMPORT DATA SET AND TRAIN'''
     # Import training data set.
     face_images = importDataSet()
 
+    # Map data to feature space.
+    parameters = []
+    face_images_transformed = applyKernal(face_images, parameters)
+
+    # NORMALIZE DATA IN FEATURE SPACE (Center around 0)
+
     # Compute the average of all of the imported face images.
-    average_face = averageVector(face_images)
+    average_face = averageVector(face_images_transformed)
 
     # Compute the deviation of all of the face images.
-    face_deviations = standardDeviation(face_images, average_face)
+    face_deviations = standardDeviation(face_images_transformed, average_face)
 
     # Calculate A matrix, impirical covariance matrix is given by C = A*AT
     A = np.concatenate(face_deviations, axis=1)
@@ -95,7 +104,7 @@ def main():
     # Optimal dimension for accuracy of recognition.
     OPTIMAL_DIM = 7
     # Optimal nearest neighbors to consider for accuracy of recognition.
-    OPTIMAL_K = 3
+    OPTIMAL_K = 4
     # Choose a subset of eigenpairs corresponding to DIM largest eigenvalues.
 
     ms_eigen_pairs = []
@@ -131,4 +140,5 @@ def main():
     plt.show()
 
 
-main()
+if __name__ == "__main__":
+    main()
