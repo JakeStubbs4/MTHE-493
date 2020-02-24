@@ -135,9 +135,11 @@ def main():
     #new_face.identity = corresponding_face[0].identity
 
     plt.figure(1)
+    plt.title("Unidentified")
     new_face.displayImage()
 
     plt.figure(2)
+    plt.title("Possible Match")
     corresponding_face.displayImage()
 
     plt.show()
