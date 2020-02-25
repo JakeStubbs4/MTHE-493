@@ -105,18 +105,22 @@ def getError(face_images, kernel_parameters, eigenspace_dimension):
 
 def optimize_kernel(face_images, eigenspace_dimension):
     kernel_dimension = randrange(11)
+    print(f"INITIAL KERNEL DIMENSION: {kernel_dimension}")
     delta = 1
     precision = 1
+    delta_dimension = precision + 1
     max_iterations = 1000
-    previous_step_size = 1
     iterations = 0
-    cur_x = getError(face_images, kernel_dimension, eigenspace_dimension)
-    while previous_step_size > precision and iterations < max_iterations:
-        prev_x = cur_x
-        cur_x = (getError(face_images, kernel_dimension + delta, eigenspace_dimension) - prev_x)/delta
-        previous_step_size = abs(cur_x - prev_x)
+    current_cost = getError(face_images, kernel_dimension, eigenspace_dimension)
+    while delta_dimension > precision and iterations < max_iterations:
+        previous_cost = current_cost
+        current_cost = getError(face_images, kernel_dimension + delta, eigenspace_dimension)
+        cost_derivative = (current_cost - previous_cost)/delta
+        previous_dimension = kernel_dimension
+        kernel_dimension = kernel_dimension - delta*cost_derivative
+        delta_dimension = abs(previous_dimension - kernel_dimension)
         iterations += 1
-
+        print(f"At Iteration: {iterations}, Kernel Dimension is: {kernel_dimension}")
     return kernel_dimension
 
 def identify(face_images, kernel_dimension, eigenspace_dimension, num_nearest_neighbors):
@@ -145,7 +149,6 @@ def identify(face_images, kernel_dimension, eigenspace_dimension, num_nearest_ne
     # Classify the given training dataset based on the chosen subspace.
     for face in face_images:
         face.OMEGA_k = projectToKernelSpace(face.image_vector, ms_eigen_pairs, face_images, kernel_dimension)
-        print(face.OMEGA_k)
 
     # Introduce new face and classify
     new_face_file = input("Enter the filename of an image to be classified: ")
