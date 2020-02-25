@@ -89,7 +89,6 @@ def getError(face_images, kernel_parameters, eigenspace_dimension):
     # Calculate eigen vectors and values from the Normalized Kernel Matrix.
     eigen_values, eigen_vectors = np.linalg.eig(K)
     print(eigen_values)
-    print(eigen_vectors)
 
     # Pair the eigenvectors and eigenvalues then order pairs by decreasing eigenvalue magnitude.
     eigen_pairs = []
@@ -97,16 +96,17 @@ def getError(face_images, kernel_parameters, eigenspace_dimension):
         eigen_pairs.append(EigenPair(eigen_values[i], eigen_vectors[i]))
     eigen_pairs.sort(key=lambda x: x.magnitude, reverse=True)
 
-    # Measure the resulting error from neglecting the remaining (len(eigen_pairs) - dim) vectors.
+    # Measure the resulting error from neglecting the remaining (len(eigen_pairs) - dim) eigen vectors.
     error = 0
     for k in range(eigenspace_dimension + 1, len(eigen_pairs) - 1):
         error += eigen_pairs[k].magnitude
     return error
 
 def optimize_kernel(face_images, eigenspace_dimension):
-    kernel_dimension = randrange(11)
+    kernel_dimension = 0
     print(f"INITIAL KERNEL DIMENSION: {kernel_dimension}")
-    delta = 1
+    delta = 0.00000000000001           # WHAT TO MAKE DELTA?
+    learning_rate = 0.001    # WHAT TO MAKE LEARNING RATE?
     precision = 1
     delta_dimension = precision + 1
     max_iterations = 1000
@@ -117,7 +117,7 @@ def optimize_kernel(face_images, eigenspace_dimension):
         current_cost = getError(face_images, kernel_dimension + delta, eigenspace_dimension)
         cost_derivative = (current_cost - previous_cost)/delta
         previous_dimension = kernel_dimension
-        kernel_dimension = kernel_dimension - delta*cost_derivative
+        kernel_dimension = kernel_dimension - learning_rate*cost_derivative
         delta_dimension = abs(previous_dimension - kernel_dimension)
         iterations += 1
         print(f"At Iteration: {iterations}, Kernel Dimension is: {kernel_dimension}")
@@ -133,7 +133,6 @@ def identify(face_images, kernel_dimension, eigenspace_dimension, num_nearest_ne
     # Calculate eigen vectors and values from the Normalized Kernel Matrix.
     eigen_values, eigen_vectors = np.linalg.eig(K)
     print(eigen_values)
-    print(eigen_vectors)
 
     # Pair the eigenvectors and eigenvalues then order pairs by decreasing eigenvalue magnitude.
     eigen_pairs = []
