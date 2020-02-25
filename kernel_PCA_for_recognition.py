@@ -3,6 +3,7 @@
 # Jake Stubbs
 
 from matplotlib import pyplot as plt
+from random import randrange
 import numpy as np
 from utilities import euclideanDistance, importDataSet, FaceImage, EigenPair, KNearestNeighbors
 
@@ -78,14 +79,47 @@ def projectToKernelSpace(current_face_image, eigen_vectors, face_images, d):
         projection += eigen_vectors[i].eigen_vector*applyKernel(current_face_image, face_images[i].image_vector, d)
     return projection
 
-def main():
-    '''IMPORT DATA SET AND TRAIN'''
-    # Will optimize with gradient descent:
-    kernel_dimension = 6
+def getError(face_images, kernel_parameters, eigenspace_dimension):
+    # Calculate K matrix
+    K = kernelMatrix(face_images, kernel_parameters)
 
-    # Import training data set.
-    face_images = importDataSet()
+    # Normalize Kernel Matrix
+    K = normalizeKernel(K)
 
+    # Calculate eigen vectors and values from the Normalized Kernel Matrix.
+    eigen_values, eigen_vectors = np.linalg.eig(K)
+    print(eigen_values)
+    print(eigen_vectors)
+
+    # Pair the eigenvectors and eigenvalues then order pairs by decreasing eigenvalue magnitude.
+    eigen_pairs = []
+    for i in range(len(eigen_values)):
+        eigen_pairs.append(EigenPair(eigen_values[i], eigen_vectors[i]))
+    eigen_pairs.sort(key=lambda x: x.magnitude, reverse=True)
+
+    # Measure the resulting error from neglecting the remaining (len(eigen_pairs) - dim) vectors.
+    error = 0
+    for k in range(eigenspace_dimension + 1, len(eigen_pairs) - 1):
+        error += eigen_pairs[k].magnitude
+    return error
+
+def optimize_kernel(face_images, eigenspace_dimension):
+    kernel_dimension = randrange(11)
+    delta = 1
+    precision = 1
+    max_iterations = 1000
+    previous_step_size = 1
+    iterations = 0
+    cur_x = getError(face_images, kernel_dimension, eigenspace_dimension)
+    while previous_step_size > precision and iterations < max_iterations:
+        prev_x = cur_x
+        cur_x = (getError(face_images, kernel_dimension + delta, eigenspace_dimension) - prev_x)/delta
+        previous_step_size = abs(cur_x - prev_x)
+        iterations += 1
+
+    return kernel_dimension
+
+def identify(face_images, kernel_dimension, eigenspace_dimension, num_nearest_neighbors):
     # Calculate K matrix
     K = kernelMatrix(face_images, kernel_dimension)
 
@@ -103,15 +137,9 @@ def main():
         eigen_pairs.append(EigenPair(eigen_values[i], eigen_vectors[i]))
     eigen_pairs.sort(key=lambda x: x.magnitude, reverse=True)
 
-    '''INTRODUCE A SINGLE FACE AT A TIME:'''
-    # Optimal dimension for accuracy of recognition.
-    OPTIMAL_DIM = 7
-    # Optimal nearest neighbors to consider for accuracy of recognition.
-    OPTIMAL_K = 3
-    # Choose a subset of eigenpairs corresponding to DIM largest eigenvalues.
-
+    # Choose a subset of eigenpairs corresponding to OPTIMAL_DIM largest eigenvalues.
     ms_eigen_pairs = []
-    for k in range(OPTIMAL_DIM):
+    for k in range(eigenspace_dimension):
         ms_eigen_pairs.append(eigen_pairs[k])
 
     # Classify the given training dataset based on the chosen subspace.
@@ -125,14 +153,11 @@ def main():
 
     new_face_projection = projectToKernelSpace(new_face.image_vector, ms_eigen_pairs, face_images, kernel_dimension)
 
-    corresponding_faces = KNearestNeighbors(face_images, new_face_projection, OPTIMAL_K)
+    corresponding_faces = KNearestNeighbors(face_images, new_face_projection, num_nearest_neighbors)
     for face in corresponding_faces:
         print(face.identity)
 
     corresponding_face = classifyImage(corresponding_faces, new_face_projection)
-
-    # TODO: Add some check which will determine if the match is close enough.
-    #new_face.identity = corresponding_face[0].identity
 
     plt.figure(1)
     plt.title("Unidentified")
@@ -143,6 +168,17 @@ def main():
     corresponding_face.displayImage()
 
     plt.show()
+
+def main():
+    # Optimal Eigenspace dimension
+    OPTIMAL_DIMENSION = 7
+    # Optimal nearest neighbors to consider.
+    OPTIMAL_NEAREST_NEIGHBORS = 3
+    # Import training data set.
+    face_images = importDataSet()
+    
+    KERNEL_PARAMETERS = optimize_kernel(face_images, OPTIMAL_DIMENSION)
+    identify(face_images, KERNEL_PARAMETERS, OPTIMAL_DIMENSION, OPTIMAL_NEAREST_NEIGHBORS)
 
 
 if __name__ == "__main__":
