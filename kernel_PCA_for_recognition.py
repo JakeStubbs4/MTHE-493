@@ -88,7 +88,6 @@ def getError(face_images, kernel_parameters, eigenspace_dimension):
 
     # Calculate eigen vectors and values from the Normalized Kernel Matrix.
     eigen_values, eigen_vectors = np.linalg.eig(K)
-    print(eigen_values)
 
     # Pair the eigenvectors and eigenvalues then order pairs by decreasing eigenvalue magnitude.
     eigen_pairs = []
@@ -103,24 +102,23 @@ def getError(face_images, kernel_parameters, eigenspace_dimension):
     return error
 
 def optimize_kernel(face_images, eigenspace_dimension):
-    kernel_dimension = 0
+    kernel_dimension = randrange(0,10)
     print(f"INITIAL KERNEL DIMENSION: {kernel_dimension}")
-    delta = 0.00000000000001           # WHAT TO MAKE DELTA?
-    learning_rate = 0.001    # WHAT TO MAKE LEARNING RATE?
-    precision = 1
-    delta_dimension = precision + 1
+    delta = 0.0000001
+    precision = 0.001
+    accuracy = precision + 1
     max_iterations = 1000
-    iterations = 0
-    current_cost = getError(face_images, kernel_dimension, eigenspace_dimension)
-    while delta_dimension > precision and iterations < max_iterations:
-        previous_cost = current_cost
-        current_cost = getError(face_images, kernel_dimension + delta, eigenspace_dimension)
-        cost_derivative = (current_cost - previous_cost)/delta
-        previous_dimension = kernel_dimension
-        kernel_dimension = kernel_dimension - learning_rate*cost_derivative
-        delta_dimension = abs(previous_dimension - kernel_dimension)
+    iterations = 1
+    cd = lambda x : (getError(face_images, x + delta, eigenspace_dimension) - getError(face_images, x, eigenspace_dimension))/delta
+    while accuracy > precision and iterations < max_iterations:
+        prev_dimension = kernel_dimension
+        cost_derivative = cd(prev_dimension)
+        learning_rate = (1/iterations)*(1/(abs(cost_derivative) + delta))
+        kernel_dimension = prev_dimension - learning_rate*cost_derivative
+        accuracy = abs(kernel_dimension - prev_dimension)
         iterations += 1
-        print(f"At Iteration: {iterations}, Kernel Dimension is: {kernel_dimension}")
+        if iterations % 50 == 0 or iterations < 25:
+            print(f"At iteration {iterations} the kernel dimension is: {kernel_dimension}, accuracy is {accuracy}")
     return kernel_dimension
 
 def identify(face_images, kernel_dimension, eigenspace_dimension, num_nearest_neighbors):
@@ -175,7 +173,7 @@ def main():
     # Optimal Eigenspace dimension
     OPTIMAL_DIMENSION = 7
     # Optimal nearest neighbors to consider.
-    OPTIMAL_NEAREST_NEIGHBORS = 3
+    OPTIMAL_NEAREST_NEIGHBORS = 2
     # Import training data set.
     face_images = importDataSet()
     
