@@ -6,6 +6,7 @@ from matplotlib import pyplot as plt
 from random import randrange
 import numpy as np
 import math
+import os
 from utilities import euclideanDistance, importDataSet, FaceImage, EigenPair, KNearestNeighbors
 
 # Computes the vector representation of the average face of all of the faces in the provided dataset.
@@ -107,13 +108,14 @@ def optimize_kernel(face_images, eigenspace_dimension):
     kernel_dimension = 1
     kernel_offset = 0
     kernel_beta = 1
-    kernel_Sigma = 0.000000000000001
+    kernel_Sigma = 1
     kernel_parameters = [kernel_alpha, kernel_dimension, kernel_offset, kernel_beta, kernel_Sigma]
     print(f"INITIAL KERNEL PARAMETERS: {kernel_parameters}")
     delta = 0.00000001
     precision = 0.001
     accuracy = precision + 1
-    max_iterations = 1000
+    max_iterations = 500
+    residual_errors = []
     iterations = 1
     da = lambda x : (getError(face_images, [sum(x) for x in zip(kernel_parameters, [delta, 0, 0, 0, 0])], eigenspace_dimension) - getError(face_images, kernel_parameters, eigenspace_dimension))/delta
     dd = lambda x : (getError(face_images, [sum(x) for x in zip(kernel_parameters, [0, delta, 0, 0, 0])], eigenspace_dimension) - getError(face_images, kernel_parameters, eigenspace_dimension))/delta
@@ -123,17 +125,17 @@ def optimize_kernel(face_images, eigenspace_dimension):
     while accuracy > precision and iterations < max_iterations:
         prev_parameters = kernel_parameters
         cost_vector = [da(prev_parameters), dd(prev_parameters), dc(prev_parameters), db(prev_parameters), ds(prev_parameters)]
-        error = getError(face_images, prev_parameters, eigenspace_dimension)
-        print(f"CURRENT RESIDUAL ERROR IS: {np.format_float_positional(error)}")
-        learning_rate_vector = np.multiply(1/iterations, [1/(abs(cost_vector[0]) + delta), 1/(abs(cost_vector[1]) + delta), 1/(abs(cost_vector[2]) + delta), 1/(abs(cost_vector[3]) + delta), 1/(abs(cost_vector[4]) + delta)])
+        learning_rate_vector = np.multiply(1/(iterations), [1/(abs(cost_vector[0]) + delta), 1/(abs(cost_vector[1]) + delta), 1/(abs(cost_vector[2]) + delta), 1/(abs(cost_vector[3]) + delta), 1/(abs(cost_vector[4]) + delta)])
         kernel_parameters = prev_parameters - np.multiply(learning_rate_vector, cost_vector)
         accuracy = np.linalg.norm(kernel_parameters - prev_parameters)
-        iterations += 1
         if iterations % 50 == 0 or iterations < 25:
-            print(f"At iteration {iterations} the kernel parameters are: {kernel_parameters}, accuracy is {accuracy}")
-    return kernel_parameters
+            error = getError(face_images, prev_parameters, eigenspace_dimension)
+            print(f"At iteration {iterations} the kernel parameters are: {kernel_parameters}, residual error is: {error}, accuracy is {accuracy}")
+            residual_errors.append(error)
+        iterations += 1
+    return kernel_parameters, residual_errors
 
-def identify(face_images, kernel_parameters, eigenspace_dimension, num_nearest_neighbors):
+def identify(face_images, kernel_parameters, eigenspace_dimension, num_nearest_neighbors, unidentified_image=None):
     # Calculate K matrix
     K = kernelMatrix(face_images, kernel_parameters[0], kernel_parameters[1], kernel_parameters[2], kernel_parameters[3], kernel_parameters[4])
 
@@ -159,40 +161,62 @@ def identify(face_images, kernel_parameters, eigenspace_dimension, num_nearest_n
     for face in face_images:
         face.OMEGA_k = projectToKernelSpace(face.image_vector, ms_eigen_pairs, face_images, kernel_parameters[0], kernel_parameters[1], kernel_parameters[2], kernel_parameters[3], kernel_parameters[4])
 
-    # Introduce new face and classify
-    new_face_file = input("Enter the filename of an image to be classified: ")
-    new_face = FaceImage(new_face_file, None)
+    if (unidentified_image == None):
+        # Introduce new face and classify
+        new_face_file = input("Enter the filename of an image to be classified: ")
+        new_face = FaceImage(new_face_file, None)
+    else:
+        new_face = unidentified_image
 
     new_face_projection = projectToKernelSpace(new_face.image_vector, ms_eigen_pairs, face_images, kernel_parameters[0], kernel_parameters[1], kernel_parameters[2], kernel_parameters[3], kernel_parameters[4])
 
     corresponding_faces = KNearestNeighbors(face_images, new_face_projection, num_nearest_neighbors)
+    print("Closest Faces:")
     for face in corresponding_faces:
         print(face.identity)
 
     corresponding_face = classifyImage(corresponding_faces, new_face_projection)
 
-    plt.figure(1)
-    plt.title("Unidentified")
-    new_face.displayImage()
+    if (unidentified_image == None):
+        plt.figure(2)
+        plt.title("Unidentified")
+        new_face.displayImage()
 
-    plt.figure(2)
-    plt.title("Possible Match")
-    corresponding_face.displayImage()
+        plt.figure(3)
+        plt.title("Possible Match")
+        corresponding_face.displayImage()
 
-    plt.show()
+        plt.show()
+
+    else:
+        print(f"Corresponding Face: {corresponding_face.identity}")
+        print(f"Unidentified Face: {new_face.identity}")
+        if (corresponding_face.identity == new_face.identity):
+            return 1
+        else:
+            return 0
 
 def main():
     # Optimal Eigenspace dimension
     OPTIMAL_DIMENSION = 7
     # Optimal nearest neighbors to consider.
-    OPTIMAL_NEAREST_NEIGHBORS = 2
+    OPTIMAL_NEAREST_NEIGHBORS = 3
     # Import training data set.
     face_images = importDataSet()
 
-    KERNEL_PARAMETERS = optimize_kernel(face_images, OPTIMAL_DIMENSION)
-    # DECENT RESULT 1: KERNEL_PARAMETERS = [8.74277761e-01, -4.20504505e-04,  9.56852310e-06,  1.17068664e-04, 1.00000000e-28]
-    identify(face_images, KERNEL_PARAMETERS, OPTIMAL_DIMENSION, OPTIMAL_NEAREST_NEIGHBORS)
+    KERNEL_PARAMETERS, RESIDUAL_ERRORS = optimize_kernel(face_images, OPTIMAL_DIMENSION)
+    plt.figure(1)
+    plt.title("Residual Error vs. Iterations as Performing Gradient Descent")
+    plt.plot(range(2, len(RESIDUAL_ERRORS)), RESIDUAL_ERRORS[2:])
+    #Residual Error: 9.88e-09 KERNEL_PARAMETERS = [-3.35316526e-05, -2.49295412e-04, -9.99990837e-01, -5.00000000e-01, 2.00308914e+00]
 
+    unidentified_images = importDataSet(os.getcwd() + "/Face_Images/unidentified", True)
+    performance_vector = []
+    for unidentified_image in unidentified_images:
+        performance_vector.append(identify(face_images, KERNEL_PARAMETERS, OPTIMAL_DIMENSION, OPTIMAL_NEAREST_NEIGHBORS, unidentified_image))
+    print(f"The current Kernel Parameters result in {(sum(performance_vector)/len(performance_vector))*100}% recognition accuracy.")
+
+    identify(face_images, KERNEL_PARAMETERS, OPTIMAL_DIMENSION, OPTIMAL_NEAREST_NEIGHBORS)
 
 if __name__ == "__main__":
     main()

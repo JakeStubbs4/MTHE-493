@@ -9,11 +9,14 @@ import os
 import math
 
 
-def importDataSet(foldername=os.getcwd() + "/Face_Images/faces_dataset"):
+def importDataSet(foldername=os.getcwd() + "/Face_Images/faces_dataset", unidentified_flag=False):
     face_images = []
     for filename in os.listdir(foldername):
         path = foldername + '/' + filename
-        face_images.append(FaceImage(path, filename))
+        if unidentified_flag:
+            face_images.append(FaceImage(path, int(filename.split('_')[1].split('.')[0])))
+        else:
+            face_images.append(FaceImage(path, filename))
     return face_images
 
 

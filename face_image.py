@@ -20,7 +20,6 @@ class FaceImage:
                 self.identity = None
             else:
                 self.identity = int(identity)
-
         else:
             self.identity = identity
         self.image_vector = self.image_array.flatten().reshape(-1, 1)
