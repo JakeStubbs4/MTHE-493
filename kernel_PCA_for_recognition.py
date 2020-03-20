@@ -9,33 +9,6 @@ import math
 import os
 from utilities import euclideanDistance, importDataSet, FaceImage, EigenPair, KNearestNeighbors
 
-# Computes the vector representation of the average face of all of the faces in the provided dataset.
-def averageVector(face_images):
-    face_images_arrays = []
-    for image in face_images:
-        face_images_arrays.append(image.image_array)
-    return np.mean(face_images_arrays, axis=0).reshape(-1, 1)
-
-# Computes the standard deviation of each face image and returns an array of deviation vectors.
-def standardDeviation(face_images, average_face):
-    face_deviations = []
-    for face in face_images:
-        face_deviations.append(face.image_vector - average_face)
-    return face_deviations
-
-# Converts eigen vector to face images to be displayed.
-def getEigenFace(eigen_vector, K):
-    eigen_face = np.dot(K, eigen_vector).reshape(150, 150)
-    return eigen_face
-
-# Projects newly introduced face image onto predetermined low dimensional image space.
-def projectImage(face_image, eigen_pairs, K):
-    projection = []
-    for pair in eigen_pairs:
-        omega_k = float(np.dot(np.dot(K, pair.eigen_vector), face_image))
-        projection.append(omega_k)
-    return projection
-
 # Classify unidentified face image projection based on the projections of the identified K nearest neighbors.
 def classifyImage(corresponding_faces, new_face_projection):
     identity_dictionary = dict()
@@ -114,7 +87,7 @@ def optimize_kernel(face_images, eigenspace_dimension):
     delta = 0.00000001
     precision = 0.001
     accuracy = precision + 1
-    max_iterations = 500
+    max_iterations = 1000
     residual_errors = []
     iterations = 1
     da = lambda x : (getError(face_images, [sum(x) for x in zip(kernel_parameters, [delta, 0, 0, 0, 0])], eigenspace_dimension) - getError(face_images, kernel_parameters, eigenspace_dimension))/delta
@@ -205,14 +178,12 @@ def main():
     face_images = importDataSet()
 
     # KERNEL_PARAMETERS takes the form [alpha, kernel_dimension, kernel_offset, beta, sigma]
-    # KERNEL_PARAMETERS, RESIDUAL_ERRORS = optimize_kernel(face_images, OPTIMAL_DIMENSION)
-    # (Equivalent to Eigenfaces) - Residual Error of 17893.872311: 
-    KERNEL_PARAMETERS = [1, 1, 0, 0, 1]
+    KERNEL_PARAMETERS, RESIDUAL_ERRORS = optimize_kernel(face_images, OPTIMAL_DIMENSION)
+    # (Equivalent to Eigenfaces) - Residual Error of 17893.872311: KERNEL_PARAMETERS = [1, 1, 0, 0, 1]
     # (Graident Descent Optimized) - Residual Error of 9.88e-09: KERNEL_PARAMETERS = [-3.35316526e-05, -2.49295412e-04, -9.99990837e-01, -5.00000000e-01, 2.00308914e+00]
-    #plt.figure(1)
-    #plt.title("Residual Error vs. Iterations as Performing Gradient Descent")
-    #plt.plot(range(2, len(RESIDUAL_ERRORS)), RESIDUAL_ERRORS[2:])
-
+    plt.figure(1)
+    plt.title("Residual Error vs. Iterations as Performing Gradient Descent")
+    plt.plot(range(2, len(RESIDUAL_ERRORS)), RESIDUAL_ERRORS[2:])
 
     unidentified_images = importDataSet(os.getcwd() + "/Face_Images/unidentified", True)
     performance_vector = []
