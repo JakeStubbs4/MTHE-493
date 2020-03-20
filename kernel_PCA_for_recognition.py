@@ -204,17 +204,21 @@ def main():
     # Import training data set.
     face_images = importDataSet()
 
-    KERNEL_PARAMETERS, RESIDUAL_ERRORS = optimize_kernel(face_images, OPTIMAL_DIMENSION)
-    plt.figure(1)
-    plt.title("Residual Error vs. Iterations as Performing Gradient Descent")
-    plt.plot(range(2, len(RESIDUAL_ERRORS)), RESIDUAL_ERRORS[2:])
-    #Residual Error: 9.88e-09 KERNEL_PARAMETERS = [-3.35316526e-05, -2.49295412e-04, -9.99990837e-01, -5.00000000e-01, 2.00308914e+00]
+    # KERNEL_PARAMETERS takes the form [alpha, kernel_dimension, kernel_offset, beta, sigma]
+    # KERNEL_PARAMETERS, RESIDUAL_ERRORS = optimize_kernel(face_images, OPTIMAL_DIMENSION)
+    # (Equivalent to Eigenfaces) - Residual Error of 17893.872311: 
+    KERNEL_PARAMETERS = [1, 1, 0, 0, 1]
+    # (Graident Descent Optimized) - Residual Error of 9.88e-09: KERNEL_PARAMETERS = [-3.35316526e-05, -2.49295412e-04, -9.99990837e-01, -5.00000000e-01, 2.00308914e+00]
+    #plt.figure(1)
+    #plt.title("Residual Error vs. Iterations as Performing Gradient Descent")
+    #plt.plot(range(2, len(RESIDUAL_ERRORS)), RESIDUAL_ERRORS[2:])
+
 
     unidentified_images = importDataSet(os.getcwd() + "/Face_Images/unidentified", True)
     performance_vector = []
     for unidentified_image in unidentified_images:
         performance_vector.append(identify(face_images, KERNEL_PARAMETERS, OPTIMAL_DIMENSION, OPTIMAL_NEAREST_NEIGHBORS, unidentified_image))
-    print(f"The current Kernel Parameters result in {(sum(performance_vector)/len(performance_vector))*100}% recognition accuracy.")
+    print(f"The current Kernel Parameters result in {(sum(performance_vector)/len(performance_vector))*100}% recognition accuracy with a residual error of {getError(face_images, KERNEL_PARAMETERS, OPTIMAL_DIMENSION)}.")
 
     identify(face_images, KERNEL_PARAMETERS, OPTIMAL_DIMENSION, OPTIMAL_NEAREST_NEIGHBORS)
 

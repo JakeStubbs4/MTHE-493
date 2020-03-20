@@ -101,6 +101,11 @@ def main():
     for k in range(OPTIMAL_DIM):
         ms_eigen_pairs.append(eigen_pairs[k])
 
+    error = 0
+    for k in range(OPTIMAL_DIM + 1, len(eigen_pairs) - 1):
+        error += eigen_pairs[k].magnitude
+    print(f"The residual error of eigenfaces is: {error}")
+
     # Classify the given training dataset based on the chosen subspace.
     for face in face_images:
         face.OMEGA_k = projectImage(face.image_vector, ms_eigen_pairs, average_face, A)
