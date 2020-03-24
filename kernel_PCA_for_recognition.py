@@ -87,7 +87,7 @@ def optimize_kernel(face_images, eigenspace_dimension):
     delta = 0.00000001
     precision = 0.001
     accuracy = precision + 1
-    max_iterations = 1000
+    max_iterations = 100
     residual_errors = []
     iterations = 1
     da = lambda x : (getError(face_images, [sum(x) for x in zip(kernel_parameters, [delta, 0, 0, 0, 0])], eigenspace_dimension) - getError(face_images, kernel_parameters, eigenspace_dimension))/delta
@@ -95,16 +95,16 @@ def optimize_kernel(face_images, eigenspace_dimension):
     dc = lambda x : (getError(face_images, [sum(x) for x in zip(kernel_parameters, [0, 0, delta, 0, 0])], eigenspace_dimension) - getError(face_images, kernel_parameters, eigenspace_dimension))/delta
     db = lambda x : (getError(face_images, [sum(x) for x in zip(kernel_parameters, [0, 0, 0, delta, 0])], eigenspace_dimension) - getError(face_images, kernel_parameters, eigenspace_dimension))/delta
     ds = lambda x : (getError(face_images, [sum(x) for x in zip(kernel_parameters, [0, 0, 0, 0, delta])], eigenspace_dimension) - getError(face_images, kernel_parameters, eigenspace_dimension))/delta
-    while accuracy > precision and iterations < max_iterations:
+    while accuracy > precision and iterations <= max_iterations:
         prev_parameters = kernel_parameters
         cost_vector = [da(prev_parameters), dd(prev_parameters), dc(prev_parameters), db(prev_parameters), ds(prev_parameters)]
         learning_rate_vector = np.multiply(1/(iterations), [1/(abs(cost_vector[0]) + delta), 1/(abs(cost_vector[1]) + delta), 1/(abs(cost_vector[2]) + delta), 1/(abs(cost_vector[3]) + delta), 1/(abs(cost_vector[4]) + delta)])
         kernel_parameters = prev_parameters - np.multiply(learning_rate_vector, cost_vector)
         accuracy = np.linalg.norm(kernel_parameters - prev_parameters)
-        if iterations % 50 == 0 or iterations < 25:
-            error = getError(face_images, prev_parameters, eigenspace_dimension)
+        error = getError(face_images, prev_parameters, eigenspace_dimension)
+        residual_errors.append(error)
+        if iterations % 25 == 0:
             print(f"At iteration {iterations} the kernel parameters are: {kernel_parameters}, residual error is: {error}, accuracy is {accuracy}")
-            residual_errors.append(error)
         iterations += 1
     return kernel_parameters, residual_errors
 
@@ -117,7 +117,6 @@ def identify(face_images, kernel_parameters, eigenspace_dimension, num_nearest_n
 
     # Calculate eigen vectors and values from the Normalized Kernel Matrix.
     eigen_values, eigen_vectors = np.linalg.eig(K)
-    print(eigen_values)
 
     # Pair the eigenvectors and eigenvalues then order pairs by decreasing eigenvalue magnitude.
     eigen_pairs = []
@@ -179,11 +178,12 @@ def main():
 
     # KERNEL_PARAMETERS takes the form [alpha, kernel_dimension, kernel_offset, beta, sigma]
     KERNEL_PARAMETERS, RESIDUAL_ERRORS = optimize_kernel(face_images, OPTIMAL_DIMENSION)
-    # (Equivalent to Eigenfaces) - Residual Error of 17893.872311: KERNEL_PARAMETERS = [1, 1, 0, 0, 1]
-    # (Graident Descent Optimized) - Residual Error of 9.88e-09: KERNEL_PARAMETERS = [-3.35316526e-05, -2.49295412e-04, -9.99990837e-01, -5.00000000e-01, 2.00308914e+00]
+    # (Equivalent to Eigenfaces): 
+    # KERNEL_PARAMETERS = [1, 1, 0, 0, 1]
+    # (Graident Descent Optimized) - Residual Error of 9.830809972373055e-09: KERNEL_PARAMETERS = [-3.95278360e-05, -3.56913360e-04, -9.99995419e-01, -5.00000000e-01, 2.00898607e+00]
     plt.figure(1)
     plt.title("Residual Error vs. Iterations as Performing Gradient Descent")
-    plt.plot(range(2, len(RESIDUAL_ERRORS)), RESIDUAL_ERRORS[2:])
+    plt.plot(range(0, len(RESIDUAL_ERRORS)), RESIDUAL_ERRORS)
 
     unidentified_images = importDataSet(os.getcwd() + "/Face_Images/unidentified", True)
     performance_vector = []
