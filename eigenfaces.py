@@ -4,6 +4,7 @@
 
 from matplotlib import pyplot as plt
 import numpy as np
+import os
 from utilities import euclideanDistance, importDataSet, FaceImage, EigenPair, KNearestNeighbors
 
 # Computes the vector representation of the average face of all of the faces in the provided dataset.
@@ -67,6 +68,43 @@ def classifyImage(corresponding_faces, new_face_projection):
     updated_results.sort(key=lambda tup: tup[1])
     return updated_results[0][0]
 
+def identify(face_images, ms_eigen_pairs, OPTIMAL_K, average_face, A, unidentified_image=None):
+
+    if (unidentified_image == None):
+        # Introduce new face and classify
+        new_face_file = input("Enter the filename of an image to be classified: ")
+        new_face = FaceImage(new_face_file, None)
+    else:
+        new_face = unidentified_image
+
+    new_face_projection = projectImage(new_face.image_vector, ms_eigen_pairs, average_face, A)
+
+    corresponding_faces = KNearestNeighbors(face_images, new_face_projection, OPTIMAL_K)
+    for face in corresponding_faces:
+        print(face.identity)
+
+    corresponding_face = classifyImage(corresponding_faces, new_face_projection)
+
+    if (unidentified_image == None):
+        plt.figure(2)
+        plt.title("Unidentified")
+        new_face.displayImage()
+
+        plt.figure(3)
+        plt.title("Possible Match")
+        corresponding_face.displayImage()
+
+        plt.show()
+
+    else:
+        print(f"Corresponding Face: {corresponding_face.identity}")
+        print(f"Unidentified Face: {new_face.identity}")
+        if (corresponding_face.identity == new_face.identity):
+            return 1
+        else:
+            return 0
+
+
 def main():
     '''IMPORT DATA SET AND TRAIN'''
     # Import training data set.
@@ -90,7 +128,6 @@ def main():
         eigen_pairs.append(EigenPair(eigen_values[i], eigen_vectors[i]))
     eigen_pairs.sort(key=lambda x: x.magnitude, reverse=True)
 
-    '''INTRODUCE A SINGLE FACE AT A TIME:'''
     # Optimal dimension for accuracy of recognition.
     OPTIMAL_DIM = 7
     # Optimal nearest neighbors to consider for accuracy of recognition.
@@ -104,37 +141,22 @@ def main():
     error = 0
     for k in range(OPTIMAL_DIM + 1, len(eigen_pairs) - 1):
         error += eigen_pairs[k].magnitude
-    print(f"The residual error of eigenfaces is: {error}")
+    print(f"Residual error of eigenfaces is: {error}")
 
     # Classify the given training dataset based on the chosen subspace.
     for face in face_images:
         face.OMEGA_k = projectImage(face.image_vector, ms_eigen_pairs, average_face, A)
         print(face.OMEGA_k)
 
-    # Introduce new face and classify
-    new_face_file = input("Enter the filename of an image to be classified: ")
-    new_face = FaceImage(new_face_file, None)
+    unidentified_images = importDataSet(os.getcwd() + "/Face_Images/unidentified", True)
+    performance_vector = []
+    for unidentified_image in unidentified_images:
+        performance_vector.append(identify(face_images, ms_eigen_pairs, OPTIMAL_K, average_face, A, unidentified_image))
+    print(f"The resulting algorithm achieves {(sum(performance_vector)/len(performance_vector))*100}% recognition accuracy.")
 
-    new_face_projection = projectImage(new_face.image_vector, ms_eigen_pairs, average_face, A)
-
-    corresponding_faces = KNearestNeighbors(face_images, new_face_projection, OPTIMAL_K)
-    for face in corresponding_faces:
-        print(face.identity)
-
-    corresponding_face = classifyImage(corresponding_faces, new_face_projection)
 
     # TODO: Add some check which will determine if the match is close enough.
     #new_face.identity = corresponding_face[0].identity
-
-    plt.figure(1)
-    plt.title("Unidentified")
-    new_face.displayImage()
-
-    plt.figure(2)
-    plt.title("Possible Match")
-    corresponding_face.displayImage()
-
-    plt.show()
 
 
 if __name__ == "__main__":
