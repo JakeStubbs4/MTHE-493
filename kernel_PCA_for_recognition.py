@@ -28,7 +28,7 @@ def classifyImage(corresponding_faces, new_face_projection):
 
 # Apply a linear combination of the Polynomial kernel with parameters d=dimension and c=offset and the gaussian kernel with parameter Sigma to data points Xi and Xj.
 def applyKernel(Xi, Xj, alpha, d, c, beta, Sigma):
-    result = alpha*float((np.dot(np.transpose(Xi), Xj) + c)**d) + beta*float(math.exp(-1*((np.linalg.norm(Xi - Xj)**2)/(2*(Sigma**2)))))
+    result = alpha*float((np.dot(np.transpose(Xi), Xj) + c)**d) + beta*float(math.exp(-1*(np.linalg.norm(Xi - Xj)**2)/(2*(Sigma**2))))
     return result
 
 # Construct an NxN Kernel matrix by applying the kernel function to each of the N data points with respect to each data point.
@@ -53,13 +53,6 @@ def getPrincipleComponent(current_face_image, eigen_vector, face_images, alpha, 
     for i in range(1, len(face_images)):
         principle_component += eigen_vector.eigen_vector[i]*applyKernel(current_face_image, face_images[i].image_vector, alpha, d, c, beta, Sigma)
     return principle_component
-
-# # Project an image to the kernal space.
-# def projectToKernelSpace(current_face_image, eigen_vectors, face_images, alpha, d, c, beta, Sigma):
-#     projection = np.dot(getPrincipleComponent(current_face_image, eigen_vectors[0], face_images, alpha, d, c, beta, Sigma), eigen_vectors[0].eigen_vector)
-#     for i in range(1, len(eigen_vectors)):
-#         projection += np.dot(getPrincipleComponent(current_face_image, eigen_vectors[i], face_images, alpha, d, c, beta, Sigma), eigen_vectors[i].eigen_vector)
-#     return projection
 
 # Project an image to the kernal space.
 def projectToKernelSpace(current_face_image, eigen_vectors, face_images, alpha, d, c, beta, Sigma):
@@ -104,7 +97,7 @@ def optimize_kernel(face_images, eigenspace_dimension):
     delta = 0.00000001
     precision = 0.0001
     accuracy = precision + 1
-    max_iterations = 100
+    max_iterations = 25
     residual_errors = []
     iterations = 1
     da = lambda x : (getError(face_images, [sum(x) for x in zip(kernel_parameters, [delta, 0, 0, 0, 0])], eigenspace_dimension) - getError(face_images, kernel_parameters, eigenspace_dimension))/delta
@@ -173,10 +166,9 @@ def main():
     # Import training data set.
     face_images = importDataSet()
 
-    # KERNEL_PARAMETERS takes the form [alpha, kernel_dimension, kernel_offset, beta, sigma]
-    # KERNEL_PARAMETERS, RESIDUAL_ERRORS = optimize_kernel(face_images, OPTIMAL_DIMENSION)
-    # (Equivalent to Eigenfaces): 
-    KERNEL_PARAMETERS = [1, 1, 0, 0, 1]
+    # KERNEL_PARAMETERS takes the form [alpha, kernel_dimension, kernel_offset, beta, sigma] 
+    KERNEL_PARAMETERS, RESIDUAL_ERRORS = optimize_kernel(face_images, OPTIMAL_DIMENSION)
+    # (Equivalent to Eigenfaces): KERNEL_PARAMETERS = [1, 1, 0, 1, 1]
     # (Graident Descent Optimized) - Residual Error of 1.9146217702328295e-08: KERNEL_PARAMETERS = [-2.48516865e+09, -2.03145406e+11, -5.29395592e-07, -2.48860032e+04, -2.69645074e+08]
 
     # Calculate K matrix
@@ -211,14 +203,14 @@ def main():
     print(f"Using Kernel Parameters: {KERNEL_PARAMETERS}")
     print(f"The resulting algorithm achieves {(sum(performance_vector)/len(performance_vector))*100}% recognition accuracy with a residual error of {getError(face_images, KERNEL_PARAMETERS, OPTIMAL_DIMENSION)}.")
 
-    #plt.figure(1)
-    #plt.title("Residual Error vs. Iterations as Performing Gradient Descent")
-    #plt.plot(range(0, len(RESIDUAL_ERRORS)), RESIDUAL_ERRORS)
+    plt.figure(1)
+    plt.title("Residual Error vs. Iterations as Performing Gradient Descent")
+    plt.plot(range(0, len(RESIDUAL_ERRORS)), RESIDUAL_ERRORS)
 
-    #plt.figure(2)
-    #plt.title("Residual Error vs. Iterations (3+) as Performing Gradient Descent")
-    #plt.plot(range(2, len(RESIDUAL_ERRORS)), RESIDUAL_ERRORS[2:])
-    #plt.show()
+    plt.figure(2)
+    plt.title("Residual Error vs. Iterations (3+) as Performing Gradient Descent")
+    plt.plot(range(2, len(RESIDUAL_ERRORS)), RESIDUAL_ERRORS[2:])
+    plt.show()
 
 if __name__ == "__main__":
     main()

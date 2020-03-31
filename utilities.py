@@ -26,7 +26,7 @@ def euclideanDistance(vector_1, vector_2):
     distance = 0.0
     for i in range(len(vector_1) - 1):
         distance += (vector_1[i] - vector_2[i])**2
-    return math.sqrt(distance)
+    return math.sqrt(abs(distance))
 
 # K Nearest Neighbor to classify an individual image projection based on the shortest euclidean distance from the projected training images.
 
