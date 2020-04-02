@@ -45,7 +45,7 @@ def getEigenFace(eigen_vector, A):
 def projectImage(face_image, eigen_pairs, average_face, A):
     projection = []
     for pair in eigen_pairs:
-        omega_k = float(np.dot(np.dot(A, pair.eigen_vector), face_image - average_face))
+        omega_k = np.dot(np.dot(A, pair.eigen_vector), face_image - average_face)
         projection.append(omega_k)
     return projection
 

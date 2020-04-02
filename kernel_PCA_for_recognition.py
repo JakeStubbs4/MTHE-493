@@ -31,7 +31,7 @@ def applyKernel(Xi, Xj, alpha, d, c, beta, Sigma):
     result = alpha*float((np.dot(np.transpose(Xi), Xj) + c)**d) + beta*float(math.exp(-1*(np.linalg.norm(Xi - Xj)**2)/(2*(Sigma**2))))
     return result
 
-# Construct an NxN Kernel matrix by applying the kernel function to each of the N data points with respect to each data point.
+# Construct an NxN Kernel matrix by applying the kernel function to each of the N data points with respect to each of the other data points.
 def kernelMatrix(face_images, alpha, d, c, beta, Sigma):
     K = []
     for i in range(len(face_images)):
@@ -55,13 +55,13 @@ def getPrincipleComponent(current_face_image, eigen_vector, face_images, alpha, 
     return principle_component
 
 # Project an image to the kernal space.
-def projectToKernelSpace(current_face_image, eigen_vectors, face_images, alpha, d, c, beta, Sigma):
+def projectToKernelSpace(current_face_image, ms_eigen_vectors, face_images, alpha, d, c, beta, Sigma):
     projection = []
-    for i in range(0, len(eigen_vectors)):
-        projection.append(getPrincipleComponent(current_face_image, eigen_vectors[i], face_images, alpha, d, c, beta, Sigma))
+    for eigen_vector in ms_eigen_vectors:
+        projection.append(getPrincipleComponent(current_face_image, eigen_vector, face_images, alpha, d, c, beta, Sigma))
     return projection
 
-
+# Compute the mean squared approximation error given the current kernel parameters (COST FUNCTION).
 def getError(face_images, kernel_parameters, eigenspace_dimension):
     # Calculate K matrix
     K = kernelMatrix(face_images, kernel_parameters[0], kernel_parameters[1], kernel_parameters[2], kernel_parameters[3], kernel_parameters[4])
@@ -88,16 +88,16 @@ def optimize_kernel(face_images, eigenspace_dimension):
     kernel_alpha = 1
     kernel_dimension = 1
     kernel_offset = 0
-    kernel_beta = 1
+    kernel_beta = 0
     kernel_Sigma = 1
     kernel_parameters = [kernel_alpha, kernel_dimension, kernel_offset, kernel_beta, kernel_Sigma]
     min_kernel_parameters = kernel_parameters
     min_error = getError(face_images, kernel_parameters, eigenspace_dimension)
     print(f"INITIAL KERNEL PARAMETERS: {kernel_parameters}")
-    delta = 0.00000001
-    precision = 0.0001
+    delta = 0.0000000001
+    precision = 0.0000000001
     accuracy = precision + 1
-    max_iterations = 25
+    max_iterations = 250
     residual_errors = []
     iterations = 1
     da = lambda x : (getError(face_images, [sum(x) for x in zip(kernel_parameters, [delta, 0, 0, 0, 0])], eigenspace_dimension) - getError(face_images, kernel_parameters, eigenspace_dimension))/delta
@@ -109,7 +109,7 @@ def optimize_kernel(face_images, eigenspace_dimension):
         prev_parameters = kernel_parameters
         cost_vector = [da(prev_parameters), dd(prev_parameters), dc(prev_parameters), db(prev_parameters), ds(prev_parameters)]
         learning_rate_vector = np.multiply(1/(iterations), [1/(abs(cost_vector[0]) + delta), 1/(abs(cost_vector[1]) + delta), 1/(abs(cost_vector[2]) + delta), 1/(abs(cost_vector[3]) + delta), 1/(abs(cost_vector[4]) + delta)])
-        # learning_rate_vector = np.multiply(1/iterations, cost_vector)
+        #learning_rate_vector = np.multiply(1/iterations, cost_vector)
         error = getError(face_images, kernel_parameters, eigenspace_dimension)
         residual_errors.append(error)
         print(f"At iteration {iterations} the kernel parameters are: {kernel_parameters}, residual error is: {error}, accuracy is {accuracy}")
@@ -119,6 +119,7 @@ def optimize_kernel(face_images, eigenspace_dimension):
             min_error = error
             min_kernel_parameters = prev_parameters
         iterations += 1
+    print(f"At the final iterations, accuracy is {accuracy}")
     return min_kernel_parameters, residual_errors
 
 def identify(face_images, ms_eigen_pairs, kernel_parameters, num_nearest_neighbors, unidentified_image=None):
@@ -168,8 +169,8 @@ def main():
 
     # KERNEL_PARAMETERS takes the form [alpha, kernel_dimension, kernel_offset, beta, sigma] 
     KERNEL_PARAMETERS, RESIDUAL_ERRORS = optimize_kernel(face_images, OPTIMAL_DIMENSION)
-    # (Equivalent to Eigenfaces): KERNEL_PARAMETERS = [1, 1, 0, 1, 1]
-    # (Graident Descent Optimized) - Residual Error of 1.9146217702328295e-08: KERNEL_PARAMETERS = [-2.48516865e+09, -2.03145406e+11, -5.29395592e-07, -2.48860032e+04, -2.69645074e+08]
+    # (Equivalent to Eigenfaces): KERNEL_PARAMETERS = [1, 1, 0, 0, 1]
+    # (Graident Descent Optimized) KERNEL_PARAMETERS = [-9.90125041e-03, -5.42213065e-01, -6.81730859e-02, -5.65539069e-06, 4.22789615]
 
     # Calculate K matrix
     K = kernelMatrix(face_images, KERNEL_PARAMETERS[0], KERNEL_PARAMETERS[1], KERNEL_PARAMETERS[2], KERNEL_PARAMETERS[3], KERNEL_PARAMETERS[4])
@@ -189,7 +190,9 @@ def main():
     # Choose a subset of eigenpairs corresponding to OPTIMAL_DIM largest eigenvalues.
     ms_eigen_pairs = []
     for k in range(OPTIMAL_DIMENSION):
+        eigen_pairs[k].eigen_vector = eigen_pairs[k].eigen_vector/(np.linalg.norm(eigen_pairs[k].eigen_vector))
         ms_eigen_pairs.append(eigen_pairs[k])
+        print(f"The norm of the eigenvector is: {np.linalg.norm(eigen_pairs[k].eigen_vector)}")
 
     # Classify the given training dataset based on the chosen subspace.
     for face in face_images:
@@ -204,11 +207,15 @@ def main():
     print(f"The resulting algorithm achieves {(sum(performance_vector)/len(performance_vector))*100}% recognition accuracy with a residual error of {getError(face_images, KERNEL_PARAMETERS, OPTIMAL_DIMENSION)}.")
 
     plt.figure(1)
-    plt.title("Residual Error vs. Iterations as Performing Gradient Descent")
+    plt.title("Mean Squared Error vs. Iterations as Performing Gradient Descent")
+    plt.xlabel("Iteration")
+    plt.ylabel("Residual Error")
     plt.plot(range(0, len(RESIDUAL_ERRORS)), RESIDUAL_ERRORS)
 
     plt.figure(2)
-    plt.title("Residual Error vs. Iterations (3+) as Performing Gradient Descent")
+    plt.title("Mean Squared Error vs. Iterations as Performing Gradient Descent (3+) as Performing Gradient Descent")
+    plt.xlabel("Iteration")
+    plt.ylabel("Residual Error")
     plt.plot(range(2, len(RESIDUAL_ERRORS)), RESIDUAL_ERRORS[2:])
     plt.show()
 
