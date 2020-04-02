@@ -1,0 +1,17 @@
+Results 1: After 25 Iterations w/ learning_rate_vec = (1/iterations)*(1/cost_derivative)
+Using Kernel Parameters: [-9.14140214e-02, -3.45617744e-01, -4.04813103e-01, 5.97655608e-05, 3.69081229e+00]
+The resulting algorithm achieves 75.49019607843137% recognition accuracy with a residual error of 0.10836667205767908.
+
+Result 2 (COULD NOT RECREATE): After 50 Iterations w/ learning_rate_vec = (1/iterations)*(1/cost_derivative)
+Using Kernel Parameters: [-9.90125041e-03, -5.42213065e-01, -6.81730859e-02, -5.65539069e-06, 4.22789615e+00]
+The resulting algorithm achieves 77.45098039215686% recognition accuracy with a residual error of 0.0038222283945135043.
+
+Result 3: After 250 Iterations w/ learning_rate_vec as above.
+Using Kernel Parameters: [-9.9139981e-06, -1.30845554, -0.543066851, 3.50691715e-10, 6.08403217]
+The resulting algorithm achieves 74.50980392156863% recognition accuracy with a residual error of 1.2404390058488904e-07.
+
+vs. Eigenfaces obtaining 72.54901960784314% recognition accuracy with a residual error of 112417.18756113885
+
+Interesting Behaviour:
+Using Kernel Parameters: [-1.26379830e+10, -1.03680559e+12, -1.21972744e+01, -8.90782411e+04, -8.13855233e+10]
+The resulting algorithm achieves 0.9803921568627451% recognition accuracy with a residual error of 1.826929104602091e-23.

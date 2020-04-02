@@ -1,6 +1,6 @@
 # MTHE-493 Facial Recognition Project
 # EigenFaces Implementation
-# Jake Stubbs
+# Prepared by Jake Stubbs
 
 from matplotlib import pyplot as plt
 from random import randrange
@@ -97,7 +97,7 @@ def optimize_kernel(face_images, eigenspace_dimension):
     delta = 0.0000000001
     precision = 0.0000000001
     accuracy = precision + 1
-    max_iterations = 250
+    max_iterations = 25
     residual_errors = []
     iterations = 1
     da = lambda x : (getError(face_images, [sum(x) for x in zip(kernel_parameters, [delta, 0, 0, 0, 0])], eigenspace_dimension) - getError(face_images, kernel_parameters, eigenspace_dimension))/delta
@@ -109,7 +109,6 @@ def optimize_kernel(face_images, eigenspace_dimension):
         prev_parameters = kernel_parameters
         cost_vector = [da(prev_parameters), dd(prev_parameters), dc(prev_parameters), db(prev_parameters), ds(prev_parameters)]
         learning_rate_vector = np.multiply(1/(iterations), [1/(abs(cost_vector[0]) + delta), 1/(abs(cost_vector[1]) + delta), 1/(abs(cost_vector[2]) + delta), 1/(abs(cost_vector[3]) + delta), 1/(abs(cost_vector[4]) + delta)])
-        #learning_rate_vector = np.multiply(1/iterations, cost_vector)
         error = getError(face_images, kernel_parameters, eigenspace_dimension)
         residual_errors.append(error)
         print(f"At iteration {iterations} the kernel parameters are: {kernel_parameters}, residual error is: {error}, accuracy is {accuracy}")
@@ -169,8 +168,6 @@ def main():
 
     # KERNEL_PARAMETERS takes the form [alpha, kernel_dimension, kernel_offset, beta, sigma] 
     KERNEL_PARAMETERS, RESIDUAL_ERRORS = optimize_kernel(face_images, OPTIMAL_DIMENSION)
-    # (Equivalent to Eigenfaces): KERNEL_PARAMETERS = [1, 1, 0, 0, 1]
-    # (Graident Descent Optimized) KERNEL_PARAMETERS = [-9.90125041e-03, -5.42213065e-01, -6.81730859e-02, -5.65539069e-06, 4.22789615]
 
     # Calculate K matrix
     K = kernelMatrix(face_images, KERNEL_PARAMETERS[0], KERNEL_PARAMETERS[1], KERNEL_PARAMETERS[2], KERNEL_PARAMETERS[3], KERNEL_PARAMETERS[4])
@@ -190,14 +187,11 @@ def main():
     # Choose a subset of eigenpairs corresponding to OPTIMAL_DIM largest eigenvalues.
     ms_eigen_pairs = []
     for k in range(OPTIMAL_DIMENSION):
-        eigen_pairs[k].eigen_vector = eigen_pairs[k].eigen_vector/(np.linalg.norm(eigen_pairs[k].eigen_vector))
         ms_eigen_pairs.append(eigen_pairs[k])
-        print(f"The norm of the eigenvector is: {np.linalg.norm(eigen_pairs[k].eigen_vector)}")
 
     # Classify the given training dataset based on the chosen subspace.
     for face in face_images:
         face.OMEGA_k = projectToKernelSpace(face.image_vector, ms_eigen_pairs, face_images, KERNEL_PARAMETERS[0], KERNEL_PARAMETERS[1], KERNEL_PARAMETERS[2], KERNEL_PARAMETERS[3], KERNEL_PARAMETERS[4])
-        print(f"Face: {face.identity} has OMEGA_K: {face.OMEGA_k}")
 
     unidentified_images = importDataSet(os.getcwd() + "/Face_Images/unidentified", True)
     performance_vector = []

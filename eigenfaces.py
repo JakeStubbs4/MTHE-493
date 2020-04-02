@@ -1,6 +1,6 @@
 # MTHE-493 Facial Recognition Project
 # EigenFaces Implementation
-# Jake Stubbs
+# Prepared by Jake Stubbs
 
 from matplotlib import pyplot as plt
 import numpy as np
@@ -8,8 +8,6 @@ import os
 from utilities import euclideanDistance, importDataSet, FaceImage, EigenPair, KNearestNeighbors
 
 # Computes the vector representation of the average face of all of the faces in the provided dataset.
-
-
 def averageVector(face_images):
     face_images_arrays = []
     for image in face_images:
@@ -17,8 +15,6 @@ def averageVector(face_images):
     return np.mean(face_images_arrays, axis=0).reshape(-1, 1)
 
 # Computes the standard deviation of each face image and returns an array of deviation vectors.
-
-
 def standardDeviation(face_images, average_face):
     face_deviations = []
     for face in face_images:
@@ -26,22 +22,16 @@ def standardDeviation(face_images, average_face):
     return face_deviations
 
 # Computes the eigenvectors of the provided empirical covariance matrix A.
-
-
 def covarianceEigenvectors(face_deviations, A):
     L = np.dot(np.transpose(A), A)
     return np.linalg.eig(L)
 
 # Converts eigen vector to face images to be displayed.
-
-
 def getEigenFace(eigen_vector, A):
     eigen_face = np.dot(A, eigen_vector).reshape(150, 150)
     return eigen_face
 
 # Projects newly introduced face image onto predetermined low dimensional image space.
-
-
 def projectImage(face_image, eigen_pairs, average_face, A):
     projection = []
     for pair in eigen_pairs:
@@ -50,8 +40,6 @@ def projectImage(face_image, eigen_pairs, average_face, A):
     return projection
 
 # Classify unidentified face image projection based on the projections of the identified K nearest neighbors.
-
-
 def classifyImage(corresponding_faces, new_face_projection):
     identity_dictionary = dict()
     for faceImage in corresponding_faces:
@@ -153,10 +141,6 @@ def main():
     for unidentified_image in unidentified_images:
         performance_vector.append(identify(face_images, ms_eigen_pairs, OPTIMAL_K, average_face, A, unidentified_image))
     print(f"The resulting algorithm achieves {(sum(performance_vector)/len(performance_vector))*100}% recognition accuracy.")
-
-
-    # TODO: Add some check which will determine if the match is close enough.
-    #new_face.identity = corresponding_face[0].identity
 
 
 if __name__ == "__main__":
